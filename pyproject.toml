@@ -1,0 +1,67 @@
+[project]
+name = "rlagent"
+version = "0.1.0"
+description = "Config-driven RL training system: SB3 + from-scratch DQN/PPO on Gymnasium benchmarks and a custom Warehouse robot environment."
+readme = "README.md"
+authors = [
+    { name = "Saransh Naik", email = "saransh.naik14@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.7",
+    "gymnasium[classic-control]>=1.1",
+    "stable-baselines3>=2.6",
+    "sb3-contrib>=2.6",
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "tensorboard>=2.17",
+    "matplotlib>=3.9",
+    "imageio[ffmpeg]>=2.34",
+    "pygame>=2.5",
+    "optuna>=3.6",
+    "rliable>=1.2",
+    "streamlit>=1.37",
+    "plotly>=5.22",
+]
+
+[project.optional-dependencies]
+# LunarLander needs Box2D, which builds from source on Windows (swig + MSVC Build Tools).
+box2d = ["gymnasium[box2d]>=1.1"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "ruff>=0.5",
+    "pre-commit>=3.7",
+]
+
+[project.scripts]
+rlagent = "rlagent.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.11.13,<0.12.0"]
+build-backend = "uv_build"
+
+# RTX 5060 (Blackwell, sm_120) needs PyTorch built for CUDA 12.8+.
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128", marker = "sys_platform == 'win32'" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "dashboard"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: long-running learning tests (deselect with -m 'not slow')"]

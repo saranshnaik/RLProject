@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Large/working training output (curated artifacts live in models/ and results/)
+runs/
+wandb/
+optuna.db
+*.mp4
+!docs/**/*.mp4
+
+.ipynb_checkpoints/
+.vscode/
