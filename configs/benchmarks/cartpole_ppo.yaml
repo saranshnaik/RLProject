@@ -1,0 +1,24 @@
+name: zoo
+env:
+  id: CartPole-v1
+  n_envs: 8
+  vec_normalize: true
+  norm_reward: false
+algo:
+  name: ppo
+  device: cpu
+  hyperparams:  # RL Baselines3 Zoo values
+    n_steps: 32
+    batch_size: 256
+    gae_lambda: 0.8
+    gamma: 0.98
+    n_epochs: 20
+    ent_coef: 0.0
+    learning_rate: lin_0.001
+    clip_range: lin_0.2
+train:
+  total_timesteps: 100000
+  seed: 0
+  eval_freq: 5000
+  n_eval_episodes: 10
+  checkpoint_freq: 0
