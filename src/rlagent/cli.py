@@ -80,6 +80,24 @@ def record(
 
 
 @app.command()
+def baseline(
+    config: Annotated[Path, typer.Argument(help="Experiment YAML whose env section is used")],
+    agent: Annotated[str, typer.Option(help="random | greedy | optimal")] = "optimal",
+    episodes: Annotated[int, typer.Option(help="Number of episodes")] = 100,
+    seed: Annotated[int, typer.Option(help="Evaluation seed")] = 12_345,
+    set_: Annotated[
+        list[str] | None,
+        typer.Option("--set", "-s", help="Override, e.g. env.kwargs.split=test"),
+    ] = None,
+) -> None:
+    """Evaluate a non-learning baseline (Warehouse-v0) in the config's environment."""
+    from rlagent.evaluation.evaluate import evaluate_baseline
+
+    cfg = load_config(config, list(set_ or []))
+    typer.echo(json.dumps(evaluate_baseline(cfg, agent, episodes, seed), indent=2))
+
+
+@app.command()
 def compare(
     groups: Annotated[
         list[Path],

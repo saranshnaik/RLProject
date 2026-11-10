@@ -1,0 +1,10 @@
+setting,agent,success_rate,mean_steps,mean_efficiency,mean_invalid_actions,mean_return
+"small (8x8, 2 items, cap 2)",random,0.005,147.505,0.0009183673469387756,81.81,-2.60223227
+"small (8x8, 2 items, cap 2)",greedy,1.0,26.23,1.0,0.0,26.682698719999998
+"small (8x8, 2 items, cap 2)",optimal,1.0,26.23,1.0,0.0,26.71572358
+"medium (12x12, 3 items, cap 2)",random,0.0,308.0,0.0,186.42,-2.12717665
+"medium (12x12, 3 items, cap 2)",greedy,1.0,62.63,0.8903994349434027,0.0,35.51993929
+"medium (12x12, 3 items, cap 2)",optimal,1.0,55.08,1.0,0.0,35.70979369
+"hard (16x16, 5 items, cap 3)",random,0.0,660.0,0.0,407.275,18.83751284
+"hard (16x16, 5 items, cap 3)",greedy,1.0,105.04,0.9100825957101684,0.0,54.691217385
+"hard (16x16, 5 items, cap 3)",optimal,1.0,95.21,1.0,0.0,55.121417385

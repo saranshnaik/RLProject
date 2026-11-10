@@ -11,7 +11,7 @@ A config-driven reinforcement learning system: Stable Baselines3 and from-scratc
 | 0 | Scaffold, tooling, CI | Done |
 | 1 | SB3 benchmark pipeline (train / evaluate / record) | Done |
 | 2 | From-scratch DQN and PPO | Done |
-| 3 | Warehouse-v0 environment and baselines | Planned |
+| 3 | Warehouse-v0 environment and baselines | Done |
 | 4 | Warehouse training and reward engineering | Planned |
 | 5 | Experiments, tuning, statistics | Planned |
 | 6 | Streamlit dashboard | Planned |
@@ -74,6 +74,25 @@ Curves and tables: `results/cartpole_ppo_*`, `results/cartpole_dqn_*`, `results/
 | CartPole PPO | LunarLander PPO |
 |---|---|
 | ![CartPole PPO](docs/figures/cartpole_ppo.gif) | ![LunarLander PPO](docs/figures/lunarlander_ppo.gif) |
+
+## Warehouse-v0 (Phase 3)
+
+A custom environment: a robot picks items from shelf-side cells and delivers them to a packing station, with procedurally generated layouts, train/test layout splits, vector and grid observations, configurable reward shaping (including a deliberately hackable `naive` mode), and an exact optimal planner for the efficiency metric. Full spec: [docs/env_spec.md](docs/env_spec.md).
+
+![Optimal planner on a held-out layout](docs/figures/warehouse_optimal.gif)
+
+Reference agents on held-out layouts (200 episodes; efficiency = optimal steps / agent steps):
+
+| Setting | Random | Greedy | Optimal |
+|---|---|---|---|
+| small (8x8, 2 items, capacity 2) | 0.5% success | 100% / eff 1.00 | 100% / eff 1.00 |
+| medium (12x12, 3 items, capacity 2) | 0% success | 100% / eff 0.89 | 100% / eff 1.00 |
+| hard (16x16, 5 items, capacity 3) | 0% success | 100% / eff 0.91 | 100% / eff 1.00 |
+
+```bash
+uv run rlagent baseline configs/warehouse/ppo_vector.yaml --agent greedy --episodes 100 \
+  --set env.kwargs.n_items=5 --set env.kwargs.capacity=3 --set env.kwargs.split=test
+```
 
 ## Development
 

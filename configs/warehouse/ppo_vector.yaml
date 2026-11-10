@@ -1,0 +1,33 @@
+name: base
+env:
+  id: Warehouse-v0
+  n_envs: 8
+  kwargs:
+    height: 8
+    width: 8
+    n_items: 2
+    capacity: 2
+    shelf_density: 0.7
+    obs_type: vector
+    shaping_gamma: 0.99
+    reward:
+      shaping: pbrs
+algo:
+  name: ppo
+  device: cpu
+  policy_kwargs:
+    net_arch: [128, 128]
+  hyperparams:  # starting point; tuned in Phase 4-5
+    n_steps: 128
+    batch_size: 256
+    n_epochs: 4
+    gamma: 0.99
+    gae_lambda: 0.95
+    ent_coef: 0.01
+    learning_rate: 0.0003
+train:
+  total_timesteps: 1000000
+  seed: 0
+  eval_freq: 50000
+  n_eval_episodes: 20
+  checkpoint_freq: 0

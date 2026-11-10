@@ -14,6 +14,8 @@ from rlagent.config import ExperimentConfig
 from rlagent.training.env_factory import build_eval_env
 from rlagent.utils.run_io import load_saved_config, resolve_artifacts
 
+EXTRA_KEYS = ("efficiency", "invalid_actions", "n_delivered", "optimal_steps")
+
 
 def load_run(
     run_dir: str | Path,
@@ -35,6 +37,7 @@ def evaluate_agent(model: Any, env: VecEnv, n_episodes: int, deterministic: bool
     returns: list[float] = []
     lengths: list[int] = []
     successes: list[float] = []
+    extras: dict[str, list[float]] = {key: [] for key in EXTRA_KEYS}
     obs = env.reset()
     while len(returns) < n_episodes:
         action, _ = model.predict(obs, deterministic=deterministic)
@@ -46,6 +49,9 @@ def evaluate_agent(model: Any, env: VecEnv, n_episodes: int, deterministic: bool
             lengths.append(int(episode["l"]))
             if "is_success" in info:
                 successes.append(float(info["is_success"]))
+            for key in EXTRA_KEYS:
+                if key in info:
+                    extras[key].append(float(info[key]))
     result = {
         "n_episodes": n_episodes,
         "mean_return": float(np.mean(returns)),
@@ -55,6 +61,24 @@ def evaluate_agent(model: Any, env: VecEnv, n_episodes: int, deterministic: bool
         "mean_length": float(np.mean(lengths)),
         "success_rate": float(np.mean(successes)) if successes else None,
     }
+    for key, values in extras.items():
+        if values:
+            result[f"mean_{key}"] = float(np.mean(values))
+    return result
+
+
+def evaluate_baseline(
+    cfg: ExperimentConfig, name: str, n_episodes: int = 100, seed: int = 12_345
+) -> dict:
+    """Run a non-learning baseline in the config's environment."""
+    from rlagent.agents.baselines import make_baseline
+
+    env = build_eval_env(cfg, seed)
+    try:
+        result = evaluate_agent(make_baseline(name, env, seed), env, n_episodes)
+    finally:
+        env.close()
+    result["baseline"] = name
     return result
 
 
