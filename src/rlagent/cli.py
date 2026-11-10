@@ -79,5 +79,25 @@ def record(
     typer.echo(f"Saved {path}")
 
 
+@app.command()
+def compare(
+    groups: Annotated[
+        list[Path],
+        typer.Argument(help="Group dirs holding seed_* runs, e.g. runs/CartPole-v1/ppo-sb3/zoo"),
+    ],
+    out: Annotated[Path, typer.Option(help="Output prefix, e.g. results/cartpole_ppo")] = Path(
+        "results/compare"
+    ),
+    key: Annotated[str, typer.Option(help="progress.csv metric to plot")] = "eval/mean_reward",
+    title: Annotated[str, typer.Option(help="Plot title")] = "",
+) -> None:
+    """Overlay learning curves across seeds and write a summary table."""
+    from rlagent.evaluation.compare import compare as run_compare
+
+    summary = run_compare(groups, out, key=key, title=title)
+    typer.echo(summary.to_string(index=False, float_format=lambda x: f"{x:.1f}"))
+    typer.echo(f"Wrote {out}_curves.png and {out}_summary.csv")
+
+
 if __name__ == "__main__":
     app()

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class _Strict(BaseModel):
@@ -31,6 +31,15 @@ class AlgoConfig(_Strict):
     policy_kwargs: dict[str, Any] = Field(default_factory=dict)
     # Passed straight to the algorithm. Strings like "lin_0.001" become linear schedules.
     hyperparams: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _check_scratch_support(self) -> AlgoConfig:
+        if self.impl == "scratch":
+            if self.name == "maskable_ppo":
+                raise ValueError("maskable_ppo is only available with impl: sb3")
+            if self.policy != "MlpPolicy":
+                raise ValueError("scratch agents only support policy: MlpPolicy")
+        return self
 
 
 class TrainConfig(_Strict):

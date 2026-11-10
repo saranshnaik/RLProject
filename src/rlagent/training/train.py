@@ -15,11 +15,11 @@ from stable_baselines3.common.logger import (
     TensorBoardOutputFormat,
 )
 
-from rlagent.agents.sb3_factory import build_model
+from rlagent.agents.factory import build_agent
 from rlagent.config import ExperimentConfig
-from rlagent.training.callbacks import make_callbacks
+from rlagent.training.callbacks import ScratchEvalHook, make_callbacks
 from rlagent.training.env_factory import build_eval_env, build_train_env
-from rlagent.utils.run_io import FINAL_MODEL, VECNORM_FINAL, run_dir_for, save_config
+from rlagent.utils.run_io import VECNORM_FINAL, model_suffix, run_dir_for, save_config
 from rlagent.utils.seeding import EVAL_SEED_OFFSET, seed_everything
 
 
@@ -53,15 +53,18 @@ def train(
     train_env = build_train_env(cfg, seed)
     eval_env = build_eval_env(cfg, seed + EVAL_SEED_OFFSET)
     try:
-        model = build_model(cfg.algo, train_env, seed)
+        model = build_agent(cfg.algo, train_env, seed)
         model.set_logger(_make_logger(run_dir, verbose))
-        callbacks = make_callbacks(cfg, run_dir, eval_env, verbose)
+        if cfg.algo.impl == "scratch":
+            callbacks = ScratchEvalHook(cfg, run_dir, eval_env, verbose)
+        else:
+            callbacks = make_callbacks(cfg, run_dir, eval_env, verbose)
 
         start = time.time()
         model.learn(total_timesteps=cfg.train.total_timesteps, callback=callbacks)
         elapsed = time.time() - start
 
-        model.save(str(run_dir / FINAL_MODEL))
+        model.save(str(run_dir / f"final_model{model_suffix(cfg.algo.impl)}"))
         venv = model.get_vec_normalize_env()
         if venv is not None:
             venv.save(str(run_dir / VECNORM_FINAL))

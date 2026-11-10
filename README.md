@@ -10,7 +10,7 @@ A config-driven reinforcement learning system: Stable Baselines3 and from-scratc
 |---|---|---|
 | 0 | Scaffold, tooling, CI | Done |
 | 1 | SB3 benchmark pipeline (train / evaluate / record) | Done |
-| 2 | From-scratch DQN and PPO | Planned |
+| 2 | From-scratch DQN and PPO | Done |
 | 3 | Warehouse-v0 environment and baselines | Planned |
 | 4 | Warehouse training and reward engineering | Planned |
 | 5 | Experiments, tuning, statistics | Planned |
@@ -37,25 +37,39 @@ uv run rlagent train configs/benchmarks/cartpole_dqn.yaml --set train.total_time
 uv run rlagent evaluate runs/CartPole-v1/ppo-sb3/zoo/seed_0 --episodes 100
 uv run rlagent record runs/CartPole-v1/ppo-sb3/zoo/seed_0 --out docs/figures/cartpole_ppo.gif
 
+# Overlay learning curves across seeds and compare implementations
+uv run rlagent compare runs/CartPole-v1/ppo-sb3/zoo runs/CartPole-v1/ppo-scratch/zoo --out results/cartpole_ppo
+
 # Watch learning curves
 uv run tensorboard --logdir runs
 ```
 
 Each run writes to `runs/<env>/<algo>-<impl>/<name>/seed_<k>/` with the resolved `config.yaml`, `progress.csv`, TensorBoard logs, and the best and final models (with `VecNormalize` statistics when used).
 
-## Benchmark results (Phase 1)
+## From-scratch agents (Phase 2)
 
-Hyperparameters start from the RL Baselines3 Zoo. Evaluation uses the best checkpoint, deterministic actions, 100 episodes.
+`rlagent.agents.scratch` holds PPO and DQN written directly in PyTorch (discrete actions, flat observations). They plug into the same `train` / `evaluate` / `record` / `compare` commands as SB3 and log the same metric names, so curves overlay directly. Select them with `impl: scratch` in a config (see `configs/benchmarks/*_scratch.yaml`).
 
-| Env | Algo | Seed | Mean return |
+- **PPO:** clipped surrogate, GAE, orthogonal init, per-minibatch advantage normalisation, gradient clipping, LR annealing, KL early stop, time-limit bootstrapping.
+- **DQN:** target network, Huber loss, gradient clipping, optional Double DQN (on by default, so it differs slightly from SB3's vanilla DQN), time-limit truncations stored as non-terminal.
+
+## Benchmark results (Phases 1-2)
+
+Hyperparameters start from the RL Baselines3 Zoo and are identical for SB3 and scratch. Scores are the **best checkpoint** (chosen by periodic 10-episode evals), re-evaluated on 100 fresh episodes with deterministic actions, then summarised over 5 seeds. IQM is the interquartile mean.
+
+| Env | Algo | SB3 mean ± std (IQM) | Scratch mean ± std (IQM) |
 |---|---|---|---|
-| CartPole-v1 | PPO | 0 | 500.0 |
-| CartPole-v1 | DQN | 0 | 500.0 |
-| LunarLander-v3 | PPO (1M steps) | 0 | 255.9 ± 20.2 |
-| LunarLander-v3 | PPO (1M steps) | 1 | 258.9 ± 18.9 |
-| LunarLander-v3 | PPO (1M steps) | 2 | 260.2 ± 21.9 |
+| CartPole-v1 | PPO (100k steps) | 500.0 ± 0.1 (500.0) | 499.9 ± 0.3 (500.0) |
+| CartPole-v1 | DQN (50k steps) | 497.0 ± 6.0 (500.0) | 499.9 ± 0.1 (500.0) |
+| LunarLander-v3 | PPO (1M steps) | 254.2 ± 6.1 (255.9) | 250.1 ± 7.4 (250.6) |
 
-LunarLander is considered solved at 200. DQN on CartPole is unstable: the best checkpoint scores 500, but its final checkpoint scored 104, so best-checkpoint selection matters. DQN on LunarLander and multi-seed CartPole runs come with the aggregated statistics in Phase 5.
+LunarLander is considered solved at 200. Scratch PPO is within about 2% of SB3 on LunarLander (IQM 250.6 vs 255.9).
+
+**Caveat on DQN.** Both DQN implementations are unstable on CartPole. Mean eval return swings between roughly 150 and 450 during training and is only about 240 (SB3) and 350 (scratch) at the final step, so the near-perfect scores above reflect best-checkpoint selection, not final-policy quality. PPO is stable. Aggregated statistics and DQN stabilisation experiments come in Phase 5.
+
+Curves and tables: `results/cartpole_ppo_*`, `results/cartpole_dqn_*`, `results/lunarlander_ppo_*`.
+
+![LunarLander PPO, SB3 vs scratch](results/lunarlander_ppo_curves.png)
 
 | CartPole PPO | LunarLander PPO |
 |---|---|

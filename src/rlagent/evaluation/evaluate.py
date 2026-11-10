@@ -9,7 +9,7 @@ from typing import Any, Literal
 import numpy as np
 from stable_baselines3.common.vec_env import VecEnv
 
-from rlagent.agents.sb3_factory import load_model
+from rlagent.agents.factory import load_agent
 from rlagent.config import ExperimentConfig
 from rlagent.training.env_factory import build_eval_env
 from rlagent.utils.run_io import load_saved_config, resolve_artifacts
@@ -25,7 +25,7 @@ def load_run(
     """Load model + a matching evaluation env (with the saved normalisation stats)."""
     cfg = load_saved_config(run_dir)
     model_path, vecnorm_path = resolve_artifacts(run_dir, which)
-    model = load_model(cfg.algo, model_path, device)
+    model = load_agent(cfg.algo, model_path, device)
     env = build_eval_env(cfg, seed, render_mode=render_mode, vecnorm_path=vecnorm_path)
     return model, env, cfg
 

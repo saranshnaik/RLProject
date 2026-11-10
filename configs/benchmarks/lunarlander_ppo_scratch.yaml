@@ -1,0 +1,21 @@
+﻿name: zoo
+env:
+  id: LunarLander-v3
+  n_envs: 16
+algo:
+  name: ppo
+  impl: scratch
+  device: cpu
+  hyperparams:  # RL Baselines3 Zoo values
+    n_steps: 1024
+    batch_size: 64
+    gae_lambda: 0.98
+    gamma: 0.999
+    n_epochs: 4
+    ent_coef: 0.01
+train:
+  total_timesteps: 1000000
+  seed: 0
+  eval_freq: 50000
+  n_eval_episodes: 10
+  checkpoint_freq: 250000
