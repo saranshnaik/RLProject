@@ -97,8 +97,8 @@ Held-out layouts (`split=test`), 200 episodes each (`results/warehouse_baselines
 | | greedy | 100% | 105.0 | 0.910 | 0 |
 | | optimal | 100% | 95.2 | 1.000 | 0 |
 
-## Known limitations and notes for Phase 4
+## Known limitations and notes
 
-- **The step penalty is a weak efficiency signal.** On the medium setting greedy takes 14% more steps than optimal but its return is only about 0.2 lower (35.5 vs 35.7), because the -0.01 step cost is small next to the +5 / +10 bonuses. An agent can succeed without being efficient. Phase 4 should check whether a larger step penalty is needed to reach the efficiency target.
+- **The step penalty is a weak efficiency signal.** On the medium setting greedy takes 14% more steps than optimal but its return is only about 0.2 lower (35.5 vs 35.7), because the -0.01 step cost is small next to the +5 / +10 bonuses. An agent can succeed without being efficient. Phase 4 checked this: with PBRS and enough training the default -0.01 reaches 0.93-0.95 efficiency, -0.02 was within noise, and -0.05 prevented learning (see [experiments.md](experiments.md)).
 - **Return is not a success proxy.** A random agent on the hard setting has a *positive* mean return (+18.8) with 0% success, because lucky picks and drops earn +1 and +5 each. Always report success rate and efficiency alongside return.
 - Items are placed near shelves but are otherwise random; there are no time windows, priorities or moving obstacles.

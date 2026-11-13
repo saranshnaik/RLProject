@@ -8,6 +8,7 @@ from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.vec_env import VecEnv
 
+from rlagent.agents.feature_extractors import FEATURE_EXTRACTORS
 from rlagent.agents.scratch.schedules import LinearSchedule, parse_hyperparams
 from rlagent.config import AlgoConfig
 
@@ -26,6 +27,18 @@ def _algo_class(name: str) -> type[BaseAlgorithm]:
     raise ValueError(f"Unknown algorithm '{name}'")
 
 
+def _policy_kwargs(algo: AlgoConfig) -> dict | None:
+    """YAML-friendly policy kwargs: a feature extractor may be given by class name."""
+    kwargs = dict(algo.policy_kwargs)
+    extractor = kwargs.get("features_extractor_class")
+    if isinstance(extractor, str):
+        if extractor not in FEATURE_EXTRACTORS:
+            known = sorted(FEATURE_EXTRACTORS)
+            raise ValueError(f"Unknown features_extractor_class '{extractor}'; known: {known}")
+        kwargs["features_extractor_class"] = FEATURE_EXTRACTORS[extractor]
+    return kwargs or None
+
+
 def build_model(algo: AlgoConfig, env: VecEnv, seed: int) -> BaseAlgorithm:
     cls = _algo_class(algo.name)
     return cls(
@@ -33,7 +46,7 @@ def build_model(algo: AlgoConfig, env: VecEnv, seed: int) -> BaseAlgorithm:
         env,
         seed=seed,
         device=algo.device,
-        policy_kwargs=dict(algo.policy_kwargs) or None,
+        policy_kwargs=_policy_kwargs(algo),
         verbose=0,
         **parse_hyperparams(algo.hyperparams),
     )

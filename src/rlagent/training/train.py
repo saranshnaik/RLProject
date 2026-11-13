@@ -8,6 +8,7 @@ import sys
 import time
 from pathlib import Path
 
+from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import (
     CSVOutputFormat,
     HumanOutputFormat,
@@ -38,8 +39,12 @@ def train(
     runs_root: str | Path = "runs",
     overwrite: bool = False,
     verbose: bool = True,
+    after_eval: BaseCallback | None = None,
 ) -> Path:
-    """Train one agent for ``cfg.train.seed`` and return its run directory."""
+    """Train one agent for ``cfg.train.seed`` and return its run directory.
+
+    ``after_eval`` (SB3 agents only) is called after every periodic evaluation; the tuner uses it
+    to report intermediate results and prune."""
     seed = cfg.train.seed
     run_dir = run_dir_for(runs_root, cfg, seed)
     if run_dir.exists():
@@ -58,7 +63,7 @@ def train(
         if cfg.algo.impl == "scratch":
             callbacks = ScratchEvalHook(cfg, run_dir, eval_env, verbose)
         else:
-            callbacks = make_callbacks(cfg, run_dir, eval_env, verbose)
+            callbacks = make_callbacks(cfg, run_dir, eval_env, verbose, after_eval)
 
         start = time.time()
         model.learn(total_timesteps=cfg.train.total_timesteps, callback=callbacks)

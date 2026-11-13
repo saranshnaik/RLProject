@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
+from sb3_contrib import MaskablePPO
 from stable_baselines3.common.vec_env import VecEnv
 
 from rlagent.agents.factory import load_agent
@@ -23,13 +24,25 @@ def load_run(
     device: str | None = None,
     render_mode: str | None = None,
     seed: int = 12_345,
+    overrides: list[str] | None = None,
 ) -> tuple[Any, VecEnv, ExperimentConfig]:
-    """Load model + a matching evaluation env (with the saved normalisation stats)."""
-    cfg = load_saved_config(run_dir)
+    """Load model + a matching evaluation env (with the saved normalisation stats).
+
+    ``overrides`` (e.g. ``env.kwargs.split=test``) adjust the saved config, so a policy can be
+    evaluated on a different layout split or difficulty than it trained on."""
+    cfg = load_saved_config(run_dir, overrides)
     model_path, vecnorm_path = resolve_artifacts(run_dir, which)
     model = load_agent(cfg.algo, model_path, device)
     env = build_eval_env(cfg, seed, render_mode=render_mode, vecnorm_path=vecnorm_path)
     return model, env, cfg
+
+
+def predict_action(model: Any, env: VecEnv, obs, deterministic: bool = True) -> np.ndarray:
+    """Next action(s) from any agent. MaskablePPO additionally needs the env's action masks."""
+    if isinstance(model, MaskablePPO):
+        masks = np.stack(env.env_method("action_masks"))
+        return model.predict(obs, deterministic=deterministic, action_masks=masks)[0]
+    return model.predict(obs, deterministic=deterministic)[0]
 
 
 def evaluate_agent(model: Any, env: VecEnv, n_episodes: int, deterministic: bool = True) -> dict:
@@ -40,7 +53,7 @@ def evaluate_agent(model: Any, env: VecEnv, n_episodes: int, deterministic: bool
     extras: dict[str, list[float]] = {key: [] for key in EXTRA_KEYS}
     obs = env.reset()
     while len(returns) < n_episodes:
-        action, _ = model.predict(obs, deterministic=deterministic)
+        action = predict_action(model, env, obs, deterministic)
         obs, _, dones, infos = env.step(action)
         if dones[0]:
             info = infos[0]
@@ -89,14 +102,21 @@ def evaluate_run(
     deterministic: bool = True,
     device: str | None = None,
     save: bool = True,
+    overrides: list[str] | None = None,
+    tag: str = "",
 ) -> dict:
-    model, env, _ = load_run(run_dir, which, device)
+    """Evaluate a run. Results are saved to ``eval_<which>[_<tag>].json``; evaluating with
+    config overrides but no tag is not saved, so it cannot overwrite the standard result."""
+    model, env, _ = load_run(run_dir, which, device, overrides=overrides)
     try:
         result = evaluate_agent(model, env, n_episodes, deterministic)
     finally:
         env.close()
     result["model"] = which
     result["deterministic"] = deterministic
-    if save:
-        (Path(run_dir) / f"eval_{which}.json").write_text(json.dumps(result, indent=2))
+    if overrides:
+        result["overrides"] = list(overrides)
+    if save and (tag or not overrides):
+        name = f"eval_{which}{'_' + tag if tag else ''}.json"
+        (Path(run_dir) / name).write_text(json.dumps(result, indent=2))
     return result

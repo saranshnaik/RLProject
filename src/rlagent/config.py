@@ -50,11 +50,31 @@ class TrainConfig(_Strict):
     checkpoint_freq: int = Field(0, ge=0)  # in total env steps; 0 disables
 
 
+class CurriculumConfig(_Strict):
+    """Warehouse difficulty stages. Training starts at ``stages[0]``; the evaluation env always
+    uses the full target difficulty from ``env.kwargs``. The learner is promoted to the next stage
+    when the success rate over the last ``window`` training episodes reaches ``threshold``."""
+
+    stages: list[dict[str, Any]] = Field(min_length=2)
+    threshold: float = Field(0.85, ge=0, le=1)  # 0 = promote after `window` episodes regardless
+    window: int = Field(200, ge=10)
+
+
 class ExperimentConfig(_Strict):
     name: str = "default"
     env: EnvConfig
     algo: AlgoConfig
     train: TrainConfig
+    curriculum: CurriculumConfig | None = None
+
+    @model_validator(mode="after")
+    def _check_curriculum_support(self) -> ExperimentConfig:
+        if self.curriculum is not None:
+            if self.env.id != "Warehouse-v0":
+                raise ValueError("curriculum is only supported for Warehouse-v0")
+            if self.algo.impl == "scratch":
+                raise ValueError("curriculum is only supported with impl: sb3")
+        return self
 
 
 def _set_nested(data: dict[str, Any], dotted_key: str, value: Any) -> None:

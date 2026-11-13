@@ -12,8 +12,8 @@ A config-driven reinforcement learning system: Stable Baselines3 and from-scratc
 | 1 | SB3 benchmark pipeline (train / evaluate / record) | Done |
 | 2 | From-scratch DQN and PPO | Done |
 | 3 | Warehouse-v0 environment and baselines | Done |
-| 4 | Warehouse training and reward engineering | Planned |
-| 5 | Experiments, tuning, statistics | Planned |
+| 4 | Warehouse training and reward engineering | Done (target met) |
+| 5 | Experiments, tuning, statistics | Tooling built; experiments not yet run |
 | 6 | Streamlit dashboard | Planned |
 | 7 | Polish | Planned |
 
@@ -40,8 +40,15 @@ uv run rlagent record runs/CartPole-v1/ppo-sb3/zoo/seed_0 --out docs/figures/car
 # Overlay learning curves across seeds and compare implementations
 uv run rlagent compare runs/CartPole-v1/ppo-sb3/zoo runs/CartPole-v1/ppo-scratch/zoo --out results/cartpole_ppo
 
-# Watch learning curves
+# Watch learning curves, or live progress bars in the terminal
 uv run tensorboard --logdir runs
+uv run rlagent watch runs
+
+# Experiment matrix (Phase 5): plan, run, aggregate; Optuna sweep; throughput benchmark
+uv run rlagent matrix configs/experiments/phase5.yaml --dry-run
+uv run rlagent aggregate configs/experiments/phase5.yaml
+uv run rlagent tune configs/sweeps/ppo_warehouse.yaml --workers 4
+uv run rlagent bench --workers 1,4
 ```
 
 Each run writes to `runs/<env>/<algo>-<impl>/<name>/seed_<k>/` with the resolved `config.yaml`, `progress.csv`, TensorBoard logs, and the best and final models (with `VecNormalize` statistics when used).
@@ -93,6 +100,30 @@ Reference agents on held-out layouts (200 episodes; efficiency = optimal steps /
 uv run rlagent baseline configs/warehouse/ppo_vector.yaml --agent greedy --episodes 100 \
   --set env.kwargs.n_items=5 --set env.kwargs.capacity=3 --set env.kwargs.split=test
 ```
+
+## Warehouse agent (Phase 4)
+
+**MaskablePPO + grid CNN + PBRS reward shaping + a 3-stage curriculum** solves held-out 12x12 layouts with 3 items (capacity 2). Final policy, 100 episodes on layouts never seen in training:
+
+| Agent | Success | Efficiency (optimal steps / agent steps) |
+|---|---|---|
+| Random | 0% | 0.00 |
+| Greedy (nearest item) | 100% | 0.89 |
+| **PPO agent, seed 0** | 99% | 0.93 |
+| **PPO agent, seed 1** | 100% | 0.95 |
+| Optimal planner | 100% | 1.00 |
+
+![Trained agent on a held-out layout](docs/figures/warehouse_maskable_ppo.gif)
+
+Three things made the difference: action masking (a penalty for invalid actions collapsed exploration), a whole-map grid observation with a small CNN (a local 7x7 patch was not enough to navigate), and a curriculum (0.76 to 0.89 success at 2M steps). Without shaping the agent still reaches 58-64% success but wastes most of its steps. The full log, including the failures, the held-out/selection caveats and the configuration sweep, is in [docs/experiments.md](docs/experiments.md). These are two seeds; the 5-seed confirmation is part of Phase 5.
+
+```bash
+uv run rlagent train configs/warehouse/maskable_grid.yaml --seed 0      # about 2h45m on an RTX 5060
+uv run rlagent evaluate runs/Warehouse-v0/maskable_ppo-sb3/maskable_grid/seed_0 --final \
+  --set env.kwargs.split=test --tag test
+```
+
+Curated model: [models/warehouse-maskable-ppo/](models/warehouse-maskable-ppo/).
 
 ## Development
 

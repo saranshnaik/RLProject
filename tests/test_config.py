@@ -11,9 +11,17 @@ CONFIGS = sorted(Path(__file__).parent.parent.glob("configs/**/*.yaml"))
 
 @pytest.mark.parametrize("path", CONFIGS, ids=lambda p: p.name)
 def test_all_shipped_configs_validate(path):
-    if "sweeps" in path.parts:
-        pytest.skip("sweep spaces use a different schema")
-    load_config(path)
+    if "sweeps" in path.parts:  # tuning specs have their own schema
+        from rlagent.training.tune import load_tune_spec
+
+        spec = load_tune_spec(path)
+        load_config(spec.base)
+    elif "experiments" in path.parts:  # experiment matrices, validated and fully expanded
+        from rlagent.training.matrix import expand_jobs, load_spec
+
+        assert expand_jobs(load_spec(path))
+    else:
+        load_config(path)
 
 
 def test_overrides_are_parsed_as_yaml():

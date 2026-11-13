@@ -2,10 +2,10 @@ name: base
 env:
   id: Warehouse-v0
   n_envs: 8
-  kwargs:
-    height: 8
-    width: 8
-    n_items: 2
+  kwargs:  # medium target: 12x12, 3 items, capacity 2
+    height: 12
+    width: 12
+    n_items: 3
     capacity: 2
     shelf_density: 0.7
     obs_type: vector
@@ -26,7 +26,7 @@ algo:
     ent_coef: 0.01
     learning_rate: 0.0003
 train:
-  total_timesteps: 1000000
+  total_timesteps: 1500000
   seed: 0
   eval_freq: 50000
   n_eval_episodes: 20

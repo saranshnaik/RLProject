@@ -1,0 +1,44 @@
+name: maskable_grid
+# Headline warehouse agent: MaskablePPO + grid CNN + PBRS shaping + curriculum.
+# Target: 12x12, 3 items, capacity 2 (held-out layouts for the test split).
+env:
+  id: Warehouse-v0
+  n_envs: 8
+  kwargs:
+    height: 12
+    width: 12
+    n_items: 3
+    capacity: 2
+    shelf_density: 0.7
+    obs_type: grid
+    shaping_gamma: 0.995  # keep equal to algo gamma so PBRS stays policy-invariant
+    reward:
+      shaping: pbrs
+algo:
+  name: maskable_ppo
+  policy: CnnPolicy
+  device: cuda
+  policy_kwargs:
+    features_extractor_class: SmallGridCNN
+    normalize_images: false
+  hyperparams:
+    n_steps: 128
+    batch_size: 256
+    n_epochs: 4
+    gamma: 0.995
+    gae_lambda: 0.95
+    ent_coef: 0.005
+    learning_rate: lin_0.0003  # linear decay to 0
+curriculum:  # promote when training success over the last `window` episodes >= threshold
+  stages:
+    - {height: 8, width: 8, n_items: 1}
+    - {height: 10, width: 10, n_items: 2}
+    - {height: 12, width: 12, n_items: 3}
+  threshold: 0.85
+  window: 200
+train:
+  total_timesteps: 5000000
+  seed: 0
+  eval_freq: 50000
+  n_eval_episodes: 20
+  checkpoint_freq: 0

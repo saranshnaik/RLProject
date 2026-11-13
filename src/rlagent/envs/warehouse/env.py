@@ -73,7 +73,9 @@ class WarehouseEnv(gym.Env):
         self.shelf_density = shelf_density
         self.n_layouts, self.split = n_layouts, split
         self.obs_type = obs_type
-        self.max_steps = max_steps or 4 * n_items * (height + width) + 20
+        self._auto_max_steps = max_steps is None
+        self.max_steps = max_steps or self._default_max_steps()
+        self._pending_difficulty: dict[str, Any] = {}
         self.reward_cfg = (
             reward if isinstance(reward, RewardConfig) else RewardConfig(**(reward or {}))
         )
@@ -101,6 +103,39 @@ class WarehouseEnv(gym.Env):
         self.t = 0
         self.n_available = self.n_carried = self.n_delivered = 0
 
+    # -- difficulty (curriculum) --------------------------------------------------------------
+    DIFFICULTY_KEYS = ("height", "width", "n_items", "capacity", "shelf_density", "max_steps")
+
+    def _default_max_steps(self) -> int:
+        return 4 * self.n_items * (self.height + self.width) + 20
+
+    def set_difficulty(self, **params: Any) -> None:
+        """Queue difficulty changes; they apply at the next ``reset`` so a running episode is
+        never altered. Observation shapes are fixed by ``max_size`` / ``max_items``."""
+        unknown = set(params) - set(self.DIFFICULTY_KEYS)
+        if unknown:
+            raise ValueError(f"Unknown difficulty parameters: {sorted(unknown)}")
+        self._pending_difficulty.update(params)
+
+    def _apply_pending_difficulty(self) -> None:
+        if not self._pending_difficulty:
+            return
+        new = dict(self._pending_difficulty)
+        self._pending_difficulty = {}
+        height, width = new.get("height", self.height), new.get("width", self.width)
+        n_items = new.get("n_items", self.n_items)
+        if max(height, width) > self.max_size or n_items > self.max_items:
+            raise ValueError("Difficulty exceeds max_size / max_items fixed at construction")
+        self.height, self.width, self.n_items = height, width, n_items
+        self.capacity = new.get("capacity", self.capacity)
+        self.shelf_density = new.get("shelf_density", self.shelf_density)
+        if "max_steps" in new:
+            self._auto_max_steps = False
+            self.max_steps = new["max_steps"]
+        elif self._auto_max_steps:
+            self.max_steps = self._default_max_steps()
+        self._layouts.clear()  # cached layouts have the old dimensions
+
     # -- layouts ----------------------------------------------------------------------------
     def _sample_layout_seed(self) -> int:
         base = self.TRAIN_SEED_BASE if self.split == "train" else self.TEST_SEED_BASE
@@ -124,6 +159,7 @@ class WarehouseEnv(gym.Env):
     # -- gym API ----------------------------------------------------------------------------
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
+        self._apply_pending_difficulty()
         options = options or {}
         self.layout_seed = int(options.get("layout_seed", self._sample_layout_seed()))
         self.layout = self._get_layout(self.layout_seed)

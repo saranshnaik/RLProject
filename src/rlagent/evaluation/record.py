@@ -7,7 +7,7 @@ from typing import Literal
 
 import imageio.v2 as imageio
 
-from rlagent.evaluation.evaluate import load_run
+from rlagent.evaluation.evaluate import load_run, predict_action
 
 
 def record_run(
@@ -27,7 +27,7 @@ def record_run(
         obs = env.reset()
         frames.append(env.render())
         while len(frames) < max_frames:
-            action, _ = model.predict(obs, deterministic=deterministic)
+            action = predict_action(model, env, obs, deterministic)
             obs, _, dones, _ = env.step(action)
             if dones[0]:
                 break  # the env has already auto-reset; skip that frame

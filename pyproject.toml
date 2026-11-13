@@ -22,9 +22,9 @@ dependencies = [
     "imageio[ffmpeg]>=2.34",
     "pygame>=2.5",
     "optuna>=3.6",
-    "rliable>=1.2",
     "streamlit>=1.37",
     "plotly>=5.22",
+    "scipy>=1.17.1",
 ]
 
 [project.optional-dependencies]

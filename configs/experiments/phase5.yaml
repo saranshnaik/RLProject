@@ -1,0 +1,79 @@
+name: phase5
+# Phase 5 experiment matrix. Run it with:
+#   uv run rlagent matrix configs/experiments/phase5.yaml --dry-run     (plan + time estimate)
+#   uv run rlagent matrix configs/experiments/phase5.yaml --tier core   (train + evaluate)
+#   uv run rlagent aggregate configs/experiments/phase5.yaml            (tables + figures)
+base: configs/warehouse/maskable_grid.yaml
+workers: 4              # parallel training processes
+threads_per_worker: 2   # OMP/MKL threads per process
+eval_episodes: 100
+eval_model: final       # warehouse policies are reported at the final step (see docs/experiments.md)
+default_sps: 520        # fallback steps/s per worker; measured: 470-590 with 4 GPU workers
+eval_overhead_s: 90
+
+# Every protocol evaluation is run on these two distributions. n_layouts is reset on the held-out
+# split so the layout-count ablation (E4) is always tested on the full unseen pool.
+eval:
+  - {tag: "", overrides: {}}
+  - {tag: test, overrides: {env.kwargs.split: test, env.kwargs.n_layouts: null}}
+
+defaults:
+  seeds: [0, 1, 2]
+  tier: core
+  overrides: {train.total_timesteps: 3000000}   # ablation budget; the headline uses 5M
+
+groups:
+  headline:
+    seeds: [0, 1, 2, 3, 4]
+    overrides: {train.total_timesteps: 5000000}
+    note: "Final agent. Seeds 0 and 1 already exist as g_c5_a_s0 / g_c5_a_s1 (identical config)."
+  ref3m:
+    note: "PBRS + curriculum + masking at the ablation budget; the reference arm for E1-E6."
+  e1_sparse:
+    overrides: {env.kwargs.reward.shaping: none}
+  e1_naive:
+    overrides: {env.kwargs.reward.shaping: naive}
+    note: "Deliberately hackable shaping: the reward-hacking demo."
+  e3_vector:
+    est_sps: 1500       # CPU MLP: measured 2150 steps/s per worker with 2 workers
+    overrides:
+      env.kwargs.obs_type: vector
+      algo.policy: MlpPolicy
+      algo.device: cpu
+      algo.policy_kwargs: {net_arch: [128, 128]}
+  e4_layouts10:
+    overrides: {env.kwargs.n_layouts: 10}
+  e4_layouts100:
+    overrides: {env.kwargs.n_layouts: 100}
+  e6_ppo_penalty:
+    base: configs/warehouse/ppo_grid.yaml
+    note: "Plain PPO, invalid actions penalised instead of masked (E6, and the PPO arm of E2)."
+  e2_dqn:
+    base: configs/warehouse/dqn_grid.yaml
+    est_sps: 300        # NOT measured yet; refine after the throughput benchmark
+  e5_no_curriculum:
+    tier: optional
+    overrides: {curriculum: null}
+
+experiments:
+  H_headline:
+    title: Headline agent (5 seeds, 5M steps)
+    groups: [headline]
+  E1_shaping:
+    title: "E1: reward shaping (sparse vs naive vs PBRS)"
+    groups: [e1_sparse, e1_naive, ref3m]
+  E2_ppo_vs_dqn:
+    title: "E2: PPO vs DQN (both without masking; masked PPO shown for reference)"
+    groups: [e6_ppo_penalty, e2_dqn, ref3m]
+  E3_observation:
+    title: "E3: observation design (vector MLP vs grid CNN)"
+    groups: [e3_vector, ref3m]
+  E4_generalization:
+    title: "E4: training-layout diversity (10 / 100 / unlimited)"
+    groups: [e4_layouts10, e4_layouts100, ref3m]
+  E5_curriculum:
+    title: "E5: curriculum on vs off"
+    groups: [e5_no_curriculum, ref3m]
+  E6_masking:
+    title: "E6: invalid-action penalty vs masking"
+    groups: [e6_ppo_penalty, ref3m]

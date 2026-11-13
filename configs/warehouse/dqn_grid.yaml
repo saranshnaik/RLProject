@@ -1,0 +1,48 @@
+name: dqn_grid
+# DQN on the grid observation. SB3's DQN has no action masking, so invalid actions are penalised
+# (compare with ppo_grid.yaml for a like-for-like PPO vs DQN comparison, E2).
+env:
+  id: Warehouse-v0
+  n_envs: 4
+  kwargs:
+    height: 12
+    width: 12
+    n_items: 3
+    capacity: 2
+    shelf_density: 0.7
+    obs_type: grid
+    shaping_gamma: 0.995
+    reward:
+      shaping: pbrs
+algo:
+  name: dqn
+  policy: CnnPolicy
+  device: cuda
+  policy_kwargs:
+    features_extractor_class: SmallGridCNN
+    normalize_images: false
+  hyperparams:
+    learning_rate: 0.0001
+    buffer_size: 100000     # float32 6x12x12 observations: ~0.9 GB per run with next_obs
+    learning_starts: 10000
+    batch_size: 128
+    gamma: 0.995
+    train_freq: 1           # per vec-env step (= n_envs transitions)
+    gradient_steps: 1
+    target_update_interval: 2000
+    exploration_fraction: 0.2
+    exploration_final_eps: 0.05
+    max_grad_norm: 10
+curriculum:
+  stages:
+    - {height: 8, width: 8, n_items: 1}
+    - {height: 10, width: 10, n_items: 2}
+    - {height: 12, width: 12, n_items: 3}
+  threshold: 0.85
+  window: 200
+train:
+  total_timesteps: 3000000
+  seed: 0
+  eval_freq: 50000
+  n_eval_episodes: 20
+  checkpoint_freq: 0

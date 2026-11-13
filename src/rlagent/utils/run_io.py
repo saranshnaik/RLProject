@@ -37,8 +37,8 @@ def save_config(cfg: ExperimentConfig, run_dir: Path) -> None:
     dump_config(cfg, run_dir / CONFIG_FILE)
 
 
-def load_saved_config(run_dir: str | Path) -> ExperimentConfig:
-    return load_config(Path(run_dir) / CONFIG_FILE)
+def load_saved_config(run_dir: str | Path, overrides: list[str] | None = None) -> ExperimentConfig:
+    return load_config(Path(run_dir) / CONFIG_FILE, overrides)
 
 
 def _find_model(run_dir: Path, stem: str) -> Path | None:
