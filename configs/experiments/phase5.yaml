@@ -34,6 +34,10 @@ groups:
   e1_naive:
     overrides: {env.kwargs.reward.shaping: naive}
     note: "Deliberately hackable shaping: the reward-hacking demo."
+  e1_naive_big:
+    seeds: [0, 1]
+    overrides: {env.kwargs.reward.shaping: naive, env.kwargs.reward.naive_bonus: 1.0}
+    note: "Naive shaping with a 10x larger bonus: the reward-hacking demo (the default bonus showed none)."
   e3_vector:
     est_sps: 1500       # CPU MLP: measured 2150 steps/s per worker with 2 workers
     overrides:
@@ -50,7 +54,7 @@ groups:
     note: "Plain PPO, invalid actions penalised instead of masked (E6, and the PPO arm of E2)."
   e2_dqn:
     base: configs/warehouse/dqn_grid.yaml
-    est_sps: 300        # NOT measured yet; refine after the throughput benchmark
+    est_sps: 250        # measured: 477 steps/s alone, 264 each with 3 GPU workers (results/throughput_dqn.csv)
   e5_no_curriculum:
     tier: optional
     overrides: {curriculum: null}
@@ -61,7 +65,7 @@ experiments:
     groups: [headline]
   E1_shaping:
     title: "E1: reward shaping (sparse vs naive vs PBRS)"
-    groups: [e1_sparse, e1_naive, ref3m]
+    groups: [e1_sparse, e1_naive, e1_naive_big, ref3m]
   E2_ppo_vs_dqn:
     title: "E2: PPO vs DQN (both without masking; masked PPO shown for reference; DQN arm not run yet)"
     groups: [e6_ppo_penalty, e2_dqn, ref3m]

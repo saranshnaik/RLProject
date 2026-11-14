@@ -56,7 +56,7 @@ def _tiny_spec(tmp_path, **extra):
 def test_phase5_spec_expands_to_valid_jobs():
     spec = load_spec(PHASE5)
     jobs = expand_jobs(spec, "runs")
-    assert len(jobs) == 32 and len({j.run_dir for j in jobs}) == 32
+    assert len(jobs) == 34 and len({j.run_dir for j in jobs}) == 34
     by_group = {}
     for job in jobs:
         by_group.setdefault(job.group, []).append(job)
