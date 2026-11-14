@@ -14,7 +14,7 @@ A config-driven reinforcement learning system: Stable Baselines3 and from-scratc
 | 3 | Warehouse-v0 environment and baselines | Done |
 | 4 | Warehouse training and reward engineering | Done (target met) |
 | 5 | Experiments, tuning, statistics | Core experiments done; DQN arm and Optuna sweep not run |
-| 6 | Streamlit dashboard | Planned |
+| 6 | Streamlit dashboard | Done |
 | 7 | Polish | Planned |
 
 ## Setup
@@ -141,6 +141,16 @@ Ablations at 3M steps (3 seeds each unless noted; 3-seed intervals understate th
 | Curriculum on vs off | Off: 53% success, 0.33 efficiency (one seed only) vs 97-100% / 0.78 with it |
 
 **Not done yet:** the DQN arm of PPO vs DQN, the Optuna sweep, more E5 seeds. Details, caveats and per-run numbers: [docs/experiments.md](docs/experiments.md) and `results/phase5_summary.md`.
+
+## Dashboard (Phase 6)
+
+```bash
+uv run streamlit run dashboard/app.py
+```
+
+Five pages: **Watch Agent** (step through an episode with the policy's action probabilities), **Learning Curves** (mean and 95% CI across seeds), **Compare Agents** (RL vs greedy vs optimal vs random, IQM with bootstrap intervals), **Reward Lab** (the shaping ablation, a scripted reward-hacking demo and a replay of the large-bonus agent) and **Sandbox** (generate a layout, run baselines and the curated model on it, or drive the robot yourself).
+
+It works from a fresh clone with no `runs/` folder: it reads the committed `models/`, `results/` and `docs/figures/`, and uses `runs/` only when present (discovered lazily, one metric at a time). Inference runs on CPU. To point it elsewhere, set `RLAGENT_RUNS_ROOT`, `RLAGENT_MODELS_ROOT` or `RLAGENT_RESULTS_ROOT`.
 
 ## Development
 
