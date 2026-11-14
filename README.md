@@ -13,7 +13,7 @@ A config-driven reinforcement learning system: Stable Baselines3 and from-scratc
 | 2 | From-scratch DQN and PPO | Done |
 | 3 | Warehouse-v0 environment and baselines | Done |
 | 4 | Warehouse training and reward engineering | Done (target met) |
-| 5 | Experiments, tuning, statistics | Tooling built; experiments not yet run |
+| 5 | Experiments, tuning, statistics | Core experiments done; DQN arm and Optuna sweep not run |
 | 6 | Streamlit dashboard | Planned |
 | 7 | Polish | Planned |
 
@@ -115,7 +115,7 @@ uv run rlagent baseline configs/warehouse/ppo_vector.yaml --agent greedy --episo
 
 ![Trained agent on a held-out layout](docs/figures/warehouse_maskable_ppo.gif)
 
-Three things made the difference: action masking (a penalty for invalid actions collapsed exploration), a whole-map grid observation with a small CNN (a local 7x7 patch was not enough to navigate), and a curriculum (0.76 to 0.89 success at 2M steps). Without shaping the agent still reaches 58-64% success but wastes most of its steps. The full log, including the failures, the held-out/selection caveats and the configuration sweep, is in [docs/experiments.md](docs/experiments.md). These are two seeds; the 5-seed confirmation is part of Phase 5.
+Three things made the difference: action masking (a penalty for invalid actions collapsed exploration), a whole-map grid observation with a small CNN (a local 7x7 patch was not enough to navigate), and a curriculum (0.76 to 0.89 success at 2M steps). Without shaping the agent still reaches 58-64% success but wastes most of its steps. The full log, including the failures, the held-out/selection caveats and the configuration sweep, is in [docs/experiments.md](docs/experiments.md). The table shows two seeds; the 5-seed confirmation is in the Phase 5 section below.
 
 ```bash
 uv run rlagent train configs/warehouse/maskable_grid.yaml --seed 0      # about 2h45m on an RTX 5060
@@ -124,6 +124,23 @@ uv run rlagent evaluate runs/Warehouse-v0/maskable_ppo-sb3/maskable_grid/seed_0 
 ```
 
 Curated model: [models/warehouse-maskable-ppo/](models/warehouse-maskable-ppo/).
+
+## Experiments (Phase 5)
+
+**Five seeds of the final agent** (5M steps, held-out 12x12 layouts, final policy, 100 episodes each): success 99 / 100 / 100 / 99 / 100%, efficiency 0.927 / 0.947 / 0.961 / 0.916 / 0.921 (IQM 0.93, 95% CI [0.92, 0.96]), against 0.89 for the greedy planner. Seeds 2-4 were not used to choose the configuration.
+
+Ablations at 3M steps (3 seeds each unless noted; 3-seed intervals understate the uncertainty):
+
+| Question | Result |
+|---|---|
+| Does reward shaping matter? | Little, once the curriculum and masking are in: sparse 0.81, naive 0.83, PBRS 0.78 efficiency, all about 99-100% success |
+| Does the hackable "naive" shaping cause reward hacking? | Not at the default bonus; no hacking observed (a larger bonus was not tried) |
+| Mask or penalise invalid actions? | Masking is essential: plain PPO with a penalty never learned to move (0% success, 3/3 seeds) |
+| Observation design | Whole-map grid + CNN: ~99% success; local-patch vector + MLP: 24% (network and observation changed together) |
+| How many training layouts? | 10 layouts: 94% held-out success with a train/held-out gap; 100 layouts: no measurable gap |
+| Curriculum on vs off | Off: 53% success, 0.33 efficiency (one seed only) vs 97-100% / 0.78 with it |
+
+**Not done yet:** the DQN arm of PPO vs DQN, the Optuna sweep, more E5 seeds. Details, caveats and per-run numbers: [docs/experiments.md](docs/experiments.md) and `results/phase5_summary.md`.
 
 ## Development
 

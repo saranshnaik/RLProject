@@ -14,3 +14,6 @@ optuna.db
 
 .ipynb_checkpoints/
 .vscode/
+
+# Local run logs and the overnight note
+logs/

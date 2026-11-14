@@ -63,7 +63,7 @@ experiments:
     title: "E1: reward shaping (sparse vs naive vs PBRS)"
     groups: [e1_sparse, e1_naive, ref3m]
   E2_ppo_vs_dqn:
-    title: "E2: PPO vs DQN (both without masking; masked PPO shown for reference)"
+    title: "E2: PPO vs DQN (both without masking; masked PPO shown for reference; DQN arm not run yet)"
     groups: [e6_ppo_penalty, e2_dqn, ref3m]
   E3_observation:
     title: "E3: observation design (vector MLP vs grid CNN)"

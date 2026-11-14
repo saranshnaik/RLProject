@@ -109,6 +109,8 @@ def markdown_table(summary: pd.DataFrame, groups: list[str]) -> str:
         if row.empty:
             return "-"
         r = row.iloc[0]
+        if r.n_seeds < 2:  # a one-seed "interval" would only look precise
+            return f"{r.iqm:.{digits}f} (n=1)"
         return f"{r.iqm:.{digits}f} [{r.ci_low:.{digits}f}, {r.ci_high:.{digits}f}]"
 
     lines = [
