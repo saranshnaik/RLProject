@@ -13,7 +13,7 @@ A config-driven reinforcement learning system: Stable Baselines3 and from-scratc
 | 2 | From-scratch DQN and PPO | Done |
 | 3 | Warehouse-v0 environment and baselines | Done |
 | 4 | Warehouse training and reward engineering | Done (target met) |
-| 5 | Experiments, tuning, statistics | Done (E2 DQN, E5 and the Optuna sweep included; tuned-vs-default check not run) |
+| 5 | Experiments, tuning, statistics | Done |
 | 6 | Streamlit dashboard | Done |
 | 7 | Polish | Planned |
 
@@ -141,7 +141,7 @@ Ablations at 3M steps (3 seeds each unless noted; 3-seed intervals understate th
 | How many training layouts? | 10 layouts: 94% held-out success with a train/held-out gap; 100 layouts: no measurable gap |
 | Curriculum on vs off | Off: 57% success, 0.39 efficiency (3 seeds) vs 99% / 0.78 with it, at 3M steps |
 
-**Hyperparameter sweep:** 27 Optuna trials (10x10, 2 items, 1M steps) found a configuration scoring 0.935 efficiency; that score is the best of 27 single-seed trials, and the tuned values have not been compared against the defaults or used in any reported result. **Not done:** that comparison (`configs/experiments/tuning_check.yaml`), the 16x16 setting. Details, caveats and per-run numbers: [docs/experiments.md](docs/experiments.md) and `results/phase5_summary.md`.
+**Hyperparameter sweep:** 27 Optuna trials (10x10, 2 items, no curriculum, 1M steps). On fresh seeds the best configuration reaches 99% held-out success and 0.87 efficiency there, against 12% and 0.09 for the default hyperparameters. It was not tested on the headline 12x12 setting (where the defaults already reach 0.93 with the curriculum at 5M steps), and no headline result uses it. **Not done:** that test and the 16x16 setting. Details, caveats and per-run numbers: [docs/experiments.md](docs/experiments.md) and `results/phase5_summary.md`, `results/tuning_check_summary.md`.
 
 ## Dashboard (Phase 6)
 

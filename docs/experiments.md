@@ -196,19 +196,33 @@ on 50 fresh *training-distribution* layouts, so the held-out layouts were never 
 - **Pattern in the top 5:** all use GAE lambda 0.9, gamma 0.995 and batch size 256, learning rates of
   4e-4 to 1e-3 (default 3e-4), entropy 0.001-0.002 (default 0.005) and 8-10 epochs (default 4). Gamma
   0.995 was already the default; lambda 0.9 and batch 256 shift the other way.
-- **Not shown:** that the tuned configuration beats the default. The sweep never evaluated the default
-  hyperparameters on this problem, and the best of 27 single-seed trials is optimistically biased (the
-  trial scores are noisy: 50 episodes, one seed). Neither the headline nor any ablation uses the tuned
-  values, which stay a candidate. `configs/experiments/tuning_check.yaml` is the fair check (default
-  vs tuned, 3 fresh seeds each, about 35 minutes); it has not been run.
+- **Tuned vs default, fresh seeds (`configs/experiments/tuning_check.yaml`, seeds 1-3, same problem):**
+  held-out 10x10 layouts, final policy, 100 episodes each.
+
+  | Hyperparameters | Success | Efficiency |
+  |---|---|---|
+  | default (`maskable_grid.yaml`) | 0.12 [0.06, 0.18] (6%, 12%, 18%) | 0.09 [0.04, 0.14] |
+  | tuned (trial 13) | 0.99 [0.98, 1.00] (100%, 98%, 100%) | 0.87 [0.79, 0.93] (0.79, 0.88, 0.93) |
+
+  So the tuned values are a large improvement on this problem, and the effect is far larger than the
+  seed spread. The fresh-seed efficiency (0.87) is a little below the 0.935 the winning trial reported,
+  the expected winner's-curse drop. Interpretation: at 1M steps without a curriculum the defaults
+  (learning rate 3e-4, 4 epochs, entropy 0.005) simply learn too slowly, and the tuned values
+  (about 3x the learning rate, 9 epochs, less entropy) learn faster.
+- **What this does not show:** that the tuned values help the headline setting. The sweep problem is
+  smaller, has no curriculum and has a short budget, which favours fast learners; the default
+  configuration reaches 0.93 efficiency with the 3-stage curriculum at 5M steps, where this gap may
+  largely disappear. No headline or ablation result uses the tuned values. Testing them on the
+  12x12 / 3-item, 3M-step reference arm (3 seeds, about 1.6 hours) is the natural next experiment and
+  has not been run.
 - **Operational note:** three of the four parallel workers crashed at start-up on a database race
   (study creation); the sweep ran on one worker for about 5 hours before I added three workers to the same
   study. The result is unaffected, but the run took longer than the 3 hour estimate.
 
 ### Not run
 
-- The **tuned-vs-default check** above, the **16x16 / 5-item** setting, the from-scratch PPO on the
-  warehouse (E7), and PBRS at a large bonus.
+- The tuned configuration on the headline setting (12x12 / 3 items with the curriculum), the
+  **16x16 / 5-item** setting, the from-scratch PPO on the warehouse (E7), and PBRS at a large bonus.
 
 ### Cost and an interruption
 
@@ -219,7 +233,7 @@ second batch at 15%; it was re-run from zero, so no partial run is in the result
 
 A second night (started 23:34) ran DQN x3, E5 seeds 1-2 and the two large-bonus runs as 7 jobs on 4
 workers (finished 05:09, 5h35m against a 4h59m estimate; DQN ran at about 264 steps/s per worker with 3
-workers, `results/throughput_dqn.csv`), followed by the Optuna sweep (finished 10:20).
+workers, `results/throughput_dqn.csv`), followed by the Optuna sweep (finished 10:20) and the 6-run tuned-vs-default check (about 55 minutes on 6 workers).
 
 ## Phase 5 plan (as designed)
 
