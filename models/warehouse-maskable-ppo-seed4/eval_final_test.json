@@ -1,0 +1,19 @@
+{
+  "n_episodes": 100,
+  "mean_return": 34.618498880000004,
+  "std_return": 0.47629499586303187,
+  "min_return": 34.100444,
+  "max_return": 38.259667,
+  "mean_length": 62.91,
+  "success_rate": 1.0,
+  "mean_efficiency": 0.9211941984617724,
+  "mean_invalid_actions": 0.0,
+  "mean_n_delivered": 3.0,
+  "mean_optimal_steps": 54.92,
+  "model": "final",
+  "deterministic": true,
+  "overrides": [
+    "env.kwargs.split=\"test\"",
+    "env.kwargs.n_layouts=null"
+  ]
+}

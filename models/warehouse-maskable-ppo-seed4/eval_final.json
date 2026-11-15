@@ -1,0 +1,15 @@
+{
+  "n_episodes": 100,
+  "mean_return": 34.50663404,
+  "std_return": 0.23706073990489976,
+  "min_return": 34.098667,
+  "max_return": 35.771444,
+  "mean_length": 56.13,
+  "success_rate": 1.0,
+  "mean_efficiency": 0.955242204684987,
+  "mean_invalid_actions": 0.0,
+  "mean_n_delivered": 3.0,
+  "mean_optimal_steps": 52.94,
+  "model": "final",
+  "deterministic": true
+}

@@ -123,7 +123,7 @@ uv run rlagent evaluate runs/Warehouse-v0/maskable_ppo-sb3/maskable_grid/seed_0 
   --set env.kwargs.split=test --tag test
 ```
 
-Curated model: [models/warehouse-maskable-ppo/](models/warehouse-maskable-ppo/).
+Curated models: [models/warehouse-maskable-ppo/](models/warehouse-maskable-ppo/) (seed 1), the other four headline seeds in `models/warehouse-maskable-ppo-seed{0,2,3,4}/`, and the deliberately hacked agent in [models/warehouse-naive-hacking/](models/warehouse-naive-hacking/).
 
 ## Experiments (Phase 5)
 
