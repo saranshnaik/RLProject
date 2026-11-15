@@ -1,0 +1,20 @@
+trial: 13
+objective_mean_efficiency: 0.9347
+success_rate: 0.98
+overrides:
+  env.kwargs.height: 10
+  env.kwargs.width: 10
+  env.kwargs.n_items: 2
+  curriculum: null
+  train.total_timesteps: 1000000
+  train.eval_freq: 50000
+  train.n_eval_episodes: 20
+  algo.hyperparams.learning_rate: lin_0.000983782
+  algo.hyperparams.ent_coef: 0.0010630953321199977
+  algo.hyperparams.gamma: 0.995
+  algo.hyperparams.gae_lambda: 0.9
+  algo.hyperparams.n_steps: 128
+  algo.hyperparams.batch_size: 256
+  algo.hyperparams.n_epochs: 9
+  algo.hyperparams.clip_range: 0.2
+  env.kwargs.shaping_gamma: 0.995

@@ -10,13 +10,15 @@
 |---|---|---|---|---|
 | e1_sparse | 3 | 0.99 [0.98, 0.99] | 0.81 [0.80, 0.82] | 72 [70, 73] |
 | e1_naive | 3 | 1.00 [0.99, 1.00] | 0.83 [0.81, 0.87] | 69 [65, 72] |
+| e1_naive_big | 2 | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] | 308 [308, 308] |
 | ref3m | 3 | 0.99 [0.97, 1.00] | 0.78 [0.77, 0.79] | 74 [72, 76] |
 
-### E2: PPO vs DQN (both without masking; masked PPO shown for reference; DQN arm not run yet)
+### E2: PPO vs DQN (both without masking; masked PPO shown for reference)
 
 | Group | Seeds | Success (held-out) | Efficiency (held-out) | Episode length |
 |---|---|---|---|---|
 | e6_ppo_penalty | 3 | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] | 308 [308, 308] |
+| e2_dqn | 3 | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] | 308 [308, 308] |
 | ref3m | 3 | 0.99 [0.97, 1.00] | 0.78 [0.77, 0.79] | 74 [72, 76] |
 
 ### E3: observation design (vector MLP vs grid CNN)
@@ -38,7 +40,7 @@
 
 | Group | Seeds | Success (held-out) | Efficiency (held-out) | Episode length |
 |---|---|---|---|---|
-| e5_no_curriculum | 1 | 0.53 (n=1) | 0.33 (n=1) | 201 (n=1) |
+| e5_no_curriculum | 3 | 0.57 [0.53, 0.63] | 0.39 [0.33, 0.45] | 186 [166, 201] |
 | ref3m | 3 | 0.99 [0.97, 1.00] | 0.78 [0.77, 0.79] | 74 [72, 76] |
 
 ### E6: invalid-action penalty vs masking

@@ -125,11 +125,13 @@ than removed.
 |---|---|---|---|
 | reference (`ref3m`) | PBRS + curriculum + masking, unlimited layouts | 0.99 [0.97, 1.00] | 0.78 [0.77, 0.79] |
 | E1 shaping | sparse | 0.99 [0.98, 0.99] | 0.81 [0.80, 0.82] |
-| | naive (hackable) | 1.00 [0.99, 1.00] | 0.83 [0.81, 0.87] |
+| | naive (hackable), bonus 0.1 | 1.00 [0.99, 1.00] | 0.83 [0.81, 0.87] |
+| | naive (hackable), bonus 1.0 (2 seeds) | **0.00** | **0.00** |
+| E2 PPO vs DQN | DQN, penalty, no masking | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] |
 | E3 observation | vector MLP, local 7x7 patch | 0.24 [0.20, 0.30] | 0.16 [0.12, 0.21] |
 | E4 layouts | 10 training layouts | 0.94 [0.93, 0.96] | 0.80 [0.76, 0.87] |
 | | 100 training layouts | 1.00 [0.99, 1.00] | 0.80 [0.78, 0.81] |
-| E5 curriculum | off (**1 seed**) | 0.53 (n=1) | 0.33 (n=1) |
+| E5 curriculum | off | 0.57 [0.53, 0.63] | 0.39 [0.33, 0.45] |
 | E6 masking | plain PPO + invalid-action penalty | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] |
 
 Budget matters more than most of these choices: the same configuration reaches 0.78 efficiency at 3M
@@ -142,13 +144,18 @@ What each experiment says, and what it does not:
   differs from the single-seed Phase 4 result without the curriculum at 2M steps, where sparse reward
   reached 58% success and 0.14 efficiency against 76% and 0.53 with PBRS. The likeliest explanation is that the curriculum and masking already solve
   the exploration problem, so shaping adds little; E5 below supports this but is one seed.
-- **E1, reward hacking: not observed.** The naive bonus is +0.1 per step that gets closer to the goal.
-  By my arithmetic, oscillating earns about +0.04 per step, roughly +10 over a full-length episode
-  against about +28 for finishing the task, so the exploit is weak at this setting. I did not verify
-  that explanation by experiment. Training and held-out success are about 100%, so the agents did not
-  find it. A demonstration of hacking would need a much larger bonus (for example `naive_bonus: 1.0`,
-  not run). Eval returns are not comparable across reward arms (the naive arm adds its bonus), so compare
-  success and efficiency only.
+- **E1, reward hacking: not at the default bonus, clearly at 10x.** The naive bonus is +0.1 per step that
+  gets closer to the goal. By my arithmetic oscillating earns about +0.04 per step, roughly +10 over a
+  full-length episode against about +28 for finishing, so the exploit is weak at that setting, and the
+  default-bonus agents (100% success) did not find it. With `naive_bonus: 1.0` (`e1_naive_big`, 2 seeds,
+  3M steps) both agents hack: 0% held-out success, **0 items delivered**, every episode runs the full 308
+  steps, yet the mean return is about +150 (146 and 149). In a replay of an in-training checkpoint of
+  this arm, 97% of the moves undid the previous move. `docs/figures/warehouse_reward_hacking.gif` shows the final policy of seed 0. The bonus
+  pays +1 for each step towards the subgoal and nothing for stepping away, so a step back and forth
+  nets more than any delivery bonus. That is the mechanism the potential-based form is designed to rule
+  out; I did not run PBRS at bonus 1.0, so the cure is shown by the Phase 4/5 PBRS runs only at the
+  default scale. Eval returns are not comparable across reward arms, so compare success and efficiency
+  only (and note that here a high return coincides with total task failure).
 - **E3, observation design.** The vector MLP reaches only about a quarter of the success of the
   grid CNN. Observation type and network changed together, and the vector observation only sees a 7x7 local
   patch, so this shows that "whole-map grid + CNN beats local patch + MLP", not which of the two matters.
@@ -158,28 +165,61 @@ What each experiment says, and what it does not:
   not worse than on the training layouts). So on this layout family somewhere between 10 and 100 layouts is
   enough to generalise. The held-out efficiency level varies a lot between seeds (0.76-0.87 with 10
   layouts), so do not rank the arms on efficiency.
-- **E5, curriculum (one seed).** Without the curriculum, one seed reaches 53% held-out success and 0.33
-  efficiency at 3M steps, against 97-100% and 0.77-0.79 with it, and its learning curve climbs late and
-  noisily (`results/phase5_E5_curriculum_curves.png`). This points the same way as the 2M-step result in Phase 4. It is
-  a single seed, so treat it as a strong hint, not a measured effect size.
+- **E5, curriculum (3 seeds).** Without the curriculum the agent reaches 57% held-out success
+  (53, 57, 63%) and 0.39 efficiency (0.33-0.45) at 3M steps, against 97-100% and 0.77-0.79 with it. All three
+  seeds are below the lowest curriculum seed, and the learning curves climb late and noisily
+  (`results/phase5_E5_curriculum_curves.png`). The 2M-step result in Phase 4 points the same way. Seed 0
+  came first as a single run (53%); seeds 1-2 were run afterwards and agree. With more steps the gap could
+  narrow: this measures speed of learning at 3M steps, not the final ceiling.
 - **E6, masking.** Plain PPO with a -0.1 invalid-action penalty and no masking never learned to move: all
   three seeds have 0% success and about 300 invalid actions per episode (the whole time limit). The
   comparison changes the algorithm class (PPO vs MaskablePPO) as well as masking, and it does not isolate the
   penalty size, so it shows that this penalty setup fails, not that no penalty setup could work.
+- **E2, PPO vs DQN: both fail without masking.** SB3 DQN (grid CNN, same curriculum, invalid actions
+  penalised like the PPO arm of E6) gets 0% success on all three seeds with 122-242 invalid actions per
+  episode, against about 300 for penalty-only PPO. So neither algorithm learns the task without masking,
+  and this experiment cannot rank them: it shows the masking, not the algorithm, decides the outcome.
+  A fair DQN comparison would need masked DQN (SB3 has none), a longer run, or a tuned exploration
+  schedule. The DQN hyperparameters were set once, untuned, and 3M steps is a modest budget for
+  off-policy learning here, so a stronger DQN is not ruled out.
+
+### Hyperparameter sweep (Optuna)
+
+`rlagent tune configs/sweeps/ppo_warehouse.yaml`: TPE sampler with a median pruner on a cheaper problem
+(10x10, 2 items, no curriculum, 1M steps, seed 0). The objective is mean efficiency of the final policy
+on 50 fresh *training-distribution* layouts, so the held-out layouts were never used. 27 trials ran
+(17 completed, 10 pruned; the target was 24, and parallel workers overshoot it). Results:
+`results/tuning/ppo_warehouse_trials.csv`, `results/tuning/ppo_warehouse_best.yaml`.
+
+- **Best trial (13):** efficiency 0.935, success 98%: learning rate 9.8e-4 (linear decay), entropy
+  coefficient 0.0011, gamma 0.995, GAE lambda 0.9, 128 steps, batch 256, 9 epochs, clip 0.2.
+- **Pattern in the top 5:** all use GAE lambda 0.9, gamma 0.995 and batch size 256, learning rates of
+  4e-4 to 1e-3 (default 3e-4), entropy 0.001-0.002 (default 0.005) and 8-10 epochs (default 4). Gamma
+  0.995 was already the default; lambda 0.9 and batch 256 shift the other way.
+- **Not shown:** that the tuned configuration beats the default. The sweep never evaluated the default
+  hyperparameters on this problem, and the best of 27 single-seed trials is optimistically biased (the
+  trial scores are noisy: 50 episodes, one seed). Neither the headline nor any ablation uses the tuned
+  values, which stay a candidate. `configs/experiments/tuning_check.yaml` is the fair check (default
+  vs tuned, 3 fresh seeds each, about 35 minutes); it has not been run.
+- **Operational note:** three of the four parallel workers crashed at start-up on a database race
+  (study creation); the sweep ran on one worker for about 5 hours before I added three workers to the same
+  study. The result is unaffected, but the run took longer than the 3 hour estimate.
 
 ### Not run
 
-- **E2, PPO vs DQN**: the DQN arm was not run (its speed was never measured, and 3 seeds are about 8
-  hours of compute). `results/phase5_E2_ppo_vs_dqn.*` therefore shows only the PPO arm.
-- **Optuna sweep** (`configs/sweeps/ppo_warehouse.yaml`), **E5 seeds 1-2**, the **16x16 / 5-item** setting
-  and the from-scratch PPO on the warehouse (E7).
+- The **tuned-vs-default check** above, the **16x16 / 5-item** setting, the from-scratch PPO on the
+  warehouse (E7), and PBRS at a large bonus.
 
 ### Cost and an interruption
 
 The core runs took about 6h40m of wall time on 4 workers (21 jobs, started 22:09, finished 04:47), then
-about 1h40m for E4 (100 layouts) and E5. Runs came in faster than estimated (a 3M-step run took
+about 1h40m for E4 (100 layouts) and E5 seed 0. Runs came in faster than estimated (a 3M-step run took
 1h10m-1h30m against the 1h37m estimate). A forced Windows Update restart killed the first attempt at the
 second batch at 15%; it was re-run from zero, so no partial run is in the results.
+
+A second night (started 23:34) ran DQN x3, E5 seeds 1-2 and the two large-bonus runs as 7 jobs on 4
+workers (finished 05:09, 5h35m against a 4h59m estimate; DQN ran at about 264 steps/s per worker with 3
+workers, `results/throughput_dqn.csv`), followed by the Optuna sweep (finished 10:20).
 
 ## Phase 5 plan (as designed)
 

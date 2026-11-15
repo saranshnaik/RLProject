@@ -1,0 +1,48 @@
+name: tuning_check
+# Does the best Optuna config beat the default hyperparameters? The sweep picked the best of ~27
+# single-seed trials, so its score is optimistically biased (winner's curse). This re-runs the winner and
+# the default on the sweep's own problem with fresh seeds (the sweep used seed 0).
+#   uv run rlagent matrix configs/experiments/tuning_check.yaml --workers 6
+#   uv run rlagent aggregate configs/experiments/tuning_check.yaml
+base: configs/warehouse/maskable_grid.yaml
+workers: 6
+threads_per_worker: 2
+eval_episodes: 100
+eval_model: final
+default_sps: 520
+eval_overhead_s: 60
+
+eval:
+  - {tag: "", overrides: {}}
+  - {tag: test, overrides: {env.kwargs.split: test, env.kwargs.n_layouts: null}}
+
+defaults:
+  seeds: [1, 2, 3]
+  tier: core
+  overrides:   # the sweep problem: 10x10, 2 items, no curriculum, 1M steps
+    env.kwargs.height: 10
+    env.kwargs.width: 10
+    env.kwargs.n_items: 2
+    curriculum: null
+    train.total_timesteps: 1000000
+
+groups:
+  tune_default:
+    note: "Hyperparameters of configs/warehouse/maskable_grid.yaml."
+  tune_best:
+    note: "Best trial of the Optuna sweep (trial 13): results/tuning/ppo_warehouse_best.yaml."
+    overrides:
+      algo.hyperparams.learning_rate: lin_0.000983782
+      algo.hyperparams.ent_coef: 0.0010630953321199977
+      algo.hyperparams.gamma: 0.995
+      algo.hyperparams.gae_lambda: 0.9
+      algo.hyperparams.n_steps: 128
+      algo.hyperparams.batch_size: 256
+      algo.hyperparams.n_epochs: 9
+      algo.hyperparams.clip_range: 0.2
+      env.kwargs.shaping_gamma: 0.995
+
+experiments:
+  T_tuning:
+    title: "Tuned vs default hyperparameters (10x10, 2 items, 1M steps, fresh seeds)"
+    groups: [tune_default, tune_best]

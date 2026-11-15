@@ -13,7 +13,7 @@ A config-driven reinforcement learning system: Stable Baselines3 and from-scratc
 | 2 | From-scratch DQN and PPO | Done |
 | 3 | Warehouse-v0 environment and baselines | Done |
 | 4 | Warehouse training and reward engineering | Done (target met) |
-| 5 | Experiments, tuning, statistics | Core experiments done; DQN arm and Optuna sweep not run |
+| 5 | Experiments, tuning, statistics | Done (E2 DQN, E5 and the Optuna sweep included; tuned-vs-default check not run) |
 | 6 | Streamlit dashboard | Done |
 | 7 | Polish | Planned |
 
@@ -134,13 +134,14 @@ Ablations at 3M steps (3 seeds each unless noted; 3-seed intervals understate th
 | Question | Result |
 |---|---|
 | Does reward shaping matter? | Little, once the curriculum and masking are in: sparse 0.81, naive 0.83, PBRS 0.78 efficiency, all about 99-100% success |
-| Does the hackable "naive" shaping cause reward hacking? | Not at the default bonus; no hacking observed (a larger bonus was not tried) |
+| Does the hackable "naive" shaping cause reward hacking? | Not at the default bonus (0.1). At 1.0 both seeds hack: 0% success, nothing delivered, return about +150 ([GIF](docs/figures/warehouse_reward_hacking.gif)) |
 | Mask or penalise invalid actions? | Masking is essential: plain PPO with a penalty never learned to move (0% success, 3/3 seeds) |
+| PPO vs DQN? | Not decidable here: DQN with a penalty and no masking also gets 0% success (3/3 seeds), like penalty-only PPO |
 | Observation design | Whole-map grid + CNN: ~99% success; local-patch vector + MLP: 24% (network and observation changed together) |
 | How many training layouts? | 10 layouts: 94% held-out success with a train/held-out gap; 100 layouts: no measurable gap |
-| Curriculum on vs off | Off: 53% success, 0.33 efficiency (one seed only) vs 97-100% / 0.78 with it |
+| Curriculum on vs off | Off: 57% success, 0.39 efficiency (3 seeds) vs 99% / 0.78 with it, at 3M steps |
 
-**Not done yet:** the DQN arm of PPO vs DQN, the Optuna sweep, more E5 seeds. Details, caveats and per-run numbers: [docs/experiments.md](docs/experiments.md) and `results/phase5_summary.md`.
+**Hyperparameter sweep:** 27 Optuna trials (10x10, 2 items, 1M steps) found a configuration scoring 0.935 efficiency; that score is the best of 27 single-seed trials, and the tuned values have not been compared against the defaults or used in any reported result. **Not done:** that comparison (`configs/experiments/tuning_check.yaml`), the 16x16 setting. Details, caveats and per-run numbers: [docs/experiments.md](docs/experiments.md) and `results/phase5_summary.md`.
 
 ## Dashboard (Phase 6)
 
