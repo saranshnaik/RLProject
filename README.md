@@ -2,7 +2,7 @@
 
 A config-driven reinforcement learning system: Stable Baselines3 and from-scratch DQN/PPO on Gymnasium benchmarks, with a custom **Warehouse robot** environment as the headline problem.
 
-> Work in progress, built phase by phase. See the status table below.
+> Built phase by phase; all phases are complete. Results, caveats and what was not tried are in [docs/experiments.md](docs/experiments.md).
 
 ## Status
 
@@ -15,7 +15,7 @@ A config-driven reinforcement learning system: Stable Baselines3 and from-scratc
 | 4 | Warehouse training and reward engineering | Done (target met) |
 | 5 | Experiments, tuning, statistics | Done |
 | 6 | Streamlit dashboard | Done |
-| 7 | Polish | Planned |
+| 7 | Polish | Done (models, model cards, README; dashboard not click-tested in a real browser) |
 
 ## Setup
 
