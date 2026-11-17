@@ -1,21 +1,42 @@
 # RLProject
 
-A config-driven reinforcement learning system: Stable Baselines3 and from-scratch DQN/PPO on Gymnasium benchmarks, with a custom **Warehouse robot** environment as the headline problem.
+A config-driven reinforcement learning system: Stable Baselines3 and from-scratch DQN/PPO on Gymnasium benchmarks, with a custom **Warehouse robot** environment as the headline problem. A robot picks items from shelves and delivers them to a packing station on procedurally generated layouts, and the trained agent is evaluated on layouts it has never seen.
 
-> Built phase by phase; all phases are complete. Results, caveats and what was not tried are in [docs/experiments.md](docs/experiments.md).
+![Trained agent on a held-out layout](docs/figures/warehouse_maskable_ppo.gif)
 
-## Status
+## Results at a glance
 
-| Phase | Scope | State |
+Held-out 12x12 layouts with 3 items, final policy, 100 episodes per seed. Efficiency is the optimal planner's step count divided by the agent's (0 for a failed episode).
+
+| Agent | Success | Efficiency |
 |---|---|---|
-| 0 | Scaffold, tooling, CI | Done |
-| 1 | SB3 benchmark pipeline (train / evaluate / record) | Done |
-| 2 | From-scratch DQN and PPO | Done |
-| 3 | Warehouse-v0 environment and baselines | Done |
-| 4 | Warehouse training and reward engineering | Done (target met) |
-| 5 | Experiments, tuning, statistics | Done |
-| 6 | Streamlit dashboard | Done |
-| 7 | Polish | Done (models, model cards, README; dashboard not click-tested in a real browser) |
+| Random | 0% | 0.00 |
+| Greedy (nearest item) | 100% | 0.89 |
+| **MaskablePPO + grid CNN + PBRS + curriculum** (5 seeds, 5M steps) | 99-100% | **0.93** (IQM, 95% CI [0.92, 0.96]) |
+| Optimal planner | 100% | 1.00 |
+
+What the experiments showed (3 seeds per ablation at 3M steps unless noted; full write-up with caveats in [docs/experiments.md](docs/experiments.md)):
+
+- **Action masking is essential.** Plain PPO and DQN that merely penalise invalid actions both scored 0% success on every seed.
+- **The curriculum matters.** Without it: 57% success and 0.39 efficiency, against 99% and 0.78.
+- **Reward shaping matters little** once masking and the curriculum are in, and the hackable "naive" shaping caused no hacking at its default bonus.
+- **Reward hacking is real at a larger bonus.** With a 10x bonus both agents deliver nothing and farm the shaping reward instead (return about +150, 0% success): see the [GIF](docs/figures/warehouse_reward_hacking.gif).
+- **10 training layouts leave a generalisation gap; 100 close it.**
+- **Tuned hyperparameters** (Optuna) beat the defaults by a wide margin on a small, short-budget problem (99% vs 12% success), but were not validated on the headline setting.
+
+## Repository layout
+
+```
+configs/        YAML configs: benchmarks/, warehouse/, experiments/ (matrices), sweeps/ (Optuna)
+src/rlagent/    envs/ (Warehouse-v0), agents/ (SB3 factory, scratch DQN/PPO, baselines),
+                training/, evaluation/ (evaluate, aggregate, record), cli.py
+dashboard/      Streamlit app (works without runs/)
+models/         curated trained models, each with a short model card
+results/        committed tables and figures (Phase 1-5, tuning)
+docs/           env_spec.md (the environment), experiments.md (lab notebook), figures/
+tests/          fast tests (CI) and slow learning tests
+runs/           training output, gitignored
+```
 
 ## Setup
 
@@ -152,6 +173,50 @@ uv run streamlit run dashboard/app.py
 Five pages: **Watch Agent** (step through an episode with the policy's action probabilities), **Learning Curves** (mean and 95% CI across seeds), **Compare Agents** (RL vs greedy vs optimal vs random, IQM with bootstrap intervals), **Reward Lab** (the shaping ablation, a scripted reward-hacking demo and a replay of the large-bonus agent) and **Sandbox** (generate a layout, run baselines and the curated model on it, or drive the robot yourself).
 
 It works from a fresh clone with no `runs/` folder: it reads the committed `models/`, `results/` and `docs/figures/`, and uses `runs/` only when present (discovered lazily, one metric at a time). Inference runs on CPU. To point it elsewhere, set `RLAGENT_RUNS_ROOT`, `RLAGENT_MODELS_ROOT` or `RLAGENT_RESULTS_ROOT`.
+
+## Design decisions
+
+- **One run-directory contract.** Every run, SB3 or scratch, writes the same files to `runs/<env>/<algo>-<impl>/<name>/seed_<k>/` (resolved config, `progress.csv`, TensorBoard logs, models, `metadata.json`), and the scratch agents log SB3's metric names. The evaluator, comparison tools and dashboard never need to know which implementation produced a run.
+- **Final policy, not best checkpoint.** Best-checkpoint scores overstate quality (the CartPole DQN caveat above), so the Warehouse results use the final model, evaluated on held-out layouts that no selection step saw.
+- **Held-out layouts and an exact baseline.** Layouts are split into train and test pools, and an optimal planner defines the efficiency metric, so "success" cannot hide a wasteful policy.
+- **Potential-based shaping.** PBRS leaves the optimal policy unchanged; the deliberately hackable `naive` mode exists to show what happens when shaping is not potential-based.
+- **Statistics.** Interquartile mean with a percentile-bootstrap interval over seeds, implemented in `evaluation/aggregate.py`. With 3 seeds the interval is close to the min-max range, so it understates the uncertainty, and the docs say so wherever it applies.
+- **Resumable experiment matrix.** `rlagent matrix` skips finished jobs, so an interrupted batch (this machine was restarted by Windows Update mid-run once) picks up where it left off.
+
+## Limitations
+
+- One environment family, one grid size for the headline, and only the PPO family solves it. DQN was run once, untuned and without masking, so the PPO-vs-DQN comparison is inconclusive rather than a ranking.
+- Ablations use 3 seeds and a 3M-step budget, which is not the 5M-step headline budget; budget alone moves efficiency from 0.78 to 0.93.
+- The observation ablation changed the network as well as the observation. The tuned hyperparameters were validated only on the small sweep problem.
+- The 16x16 / 5-item setting and from-scratch PPO on the warehouse were not run. The dashboard was tested with Streamlit's test harness, not clicked through in a browser.
+
+## Reproducing the headline result
+
+```bash
+uv sync
+uv run rlagent matrix configs/experiments/phase5.yaml --only headline --dry-run   # plan and time estimate
+uv run rlagent matrix configs/experiments/phase5.yaml --only headline             # 5 seeds x 5M steps, then evaluates
+uv run rlagent aggregate configs/experiments/phase5.yaml                          # tables and figures in results/
+```
+
+A 5M-step run takes roughly 2-3 hours on an RTX 5060 laptop GPU (CUDA 12.8 PyTorch). The full Phase 5 matrix plus the DQN arm and the Optuna sweep took about two nights on four parallel workers.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
+
+## Project phases
+
+| Phase | Scope | State |
+|---|---|---|
+| 0 | Scaffold, tooling, CI | Done |
+| 1 | SB3 benchmark pipeline (train / evaluate / record) | Done |
+| 2 | From-scratch DQN and PPO | Done |
+| 3 | Warehouse-v0 environment and baselines | Done |
+| 4 | Warehouse training and reward engineering | Done (target met) |
+| 5 | Experiments, tuning, statistics | Done |
+| 6 | Streamlit dashboard | Done |
+| 7 | Polish | Done (models, model cards, README; dashboard not click-tested in a real browser) |
 
 ## Development
 
