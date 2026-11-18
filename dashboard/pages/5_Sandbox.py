@@ -166,7 +166,12 @@ with tab_drive:
         a, b, c = st.columns(3)
         a.metric("Steps", f"{env.t} / {env.max_steps}")
         b.metric("Return", f"{st.session_state['manual_total']:.2f}")
-        c.metric("Delivered", f"{env.n_delivered} / {env.n_items}  (carrying {env.n_carried})")
+        c.metric(
+            "Delivered",
+            f"{env.n_delivered} / {env.n_items}",
+            f"carrying {env.n_carried}",
+            delta_color="off",
+        )
 
         masks = env.action_masks() if not done else np.zeros(6, dtype=bool)
         pad = st.columns(3)

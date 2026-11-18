@@ -48,8 +48,9 @@ else:
     st.caption(
         "Held-out layouts, IQM [95% CI over seeds], 3M steps. Compare success and efficiency only: "
         "the naive arms add their bonus to the return, so returns are not comparable across arms. "
-        "Finding so far: with the curriculum and masking in place, shaping barely matters, and the "
-        "default naive bonus (0.1) was not exploited."
+        "Finding: with the curriculum and masking in place, shaping barely matters, and the "
+        "default naive bonus (0.1) was not exploited. At a 10x bonus (1.0) both agents hack it: "
+        "0% success, nothing delivered."
     )
 
 groups = {g.name: g for g in cached.run_groups() if g.env == "Warehouse-v0"}
@@ -63,7 +64,9 @@ if live:
     for name in live:
         seeds = cached.group_curves(groups[name], metric)
         if seeds:
-            curves[E1_LABELS[name]] = stats.mean_ci_curve(list(seeds.values()))
+            curves[E1_LABELS[name]] = stats.mean_ci_curve(
+                list(seeds.values()), bounds=stats.metric_bounds(metric)
+            )
     if curves:
         st.plotly_chart(plots.curves_figure(curves, metric), width="stretch")
         st.caption(

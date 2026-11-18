@@ -41,7 +41,9 @@ def _draw(ep: Episode, index: int, show_probs: bool) -> None:
         a.metric("Step", f"{index} / {n}")
         b.metric("Return", f"{frame.total_return:.2f}")
         c.metric("Last reward", f"{frame.reward:+.2f}")
-        d.metric("Delivered", f"{frame.n_delivered}  (carrying {frame.n_carried})")
+        d.metric(
+            "Delivered", f"{frame.n_delivered}", f"carrying {frame.n_carried}", delta_color="off"
+        )
         if frame.action is None:
             st.caption("Final state of the episode." if index else "Empty episode.")
         else:

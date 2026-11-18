@@ -77,7 +77,9 @@ else:
                 st.caption(f"`{group.name}`: no values for `{metric}` yet.")
                 continue
             label = group.name if len({g.name for g in chosen}) == len(chosen) else group.label
-            curves[label] = stats.mean_ci_curve(list(seeds.values()), window=window)
+            curves[label] = stats.mean_ci_curve(
+                list(seeds.values()), window=window, bounds=stats.metric_bounds(metric)
+            )
             per_seed[label] = seeds
         if curves:
             fig = plots.curves_figure(curves, metric)

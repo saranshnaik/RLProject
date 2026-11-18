@@ -167,7 +167,7 @@ Ablations at 3M steps (3 seeds each unless noted; 3-seed intervals understate th
 ## Dashboard (Phase 6)
 
 ```bash
-uv run streamlit run dashboard/app.py
+uv run streamlit run dashboard/Overview.py
 ```
 
 Five pages: **Watch Agent** (step through an episode with the policy's action probabilities), **Learning Curves** (mean and 95% CI across seeds), **Compare Agents** (RL vs greedy vs optimal vs random, IQM with bootstrap intervals), **Reward Lab** (the shaping ablation, a scripted reward-hacking demo and a replay of the large-bonus agent) and **Sandbox** (generate a layout, run baselines and the curated model on it, or drive the robot yourself).
@@ -188,7 +188,7 @@ It works from a fresh clone with no `runs/` folder: it reads the committed `mode
 - One environment family, one grid size for the headline, and only the PPO family solves it. DQN was run once, untuned and without masking, so the PPO-vs-DQN comparison is inconclusive rather than a ranking.
 - Ablations use 3 seeds and a 3M-step budget, which is not the 5M-step headline budget; budget alone moves efficiency from 0.78 to 0.93.
 - The observation ablation changed the network as well as the observation. The tuned hyperparameters were validated only on the small sweep problem.
-- The 16x16 / 5-item setting and from-scratch PPO on the warehouse were not run. The dashboard was tested with Streamlit's test harness, not clicked through in a browser.
+- The 16x16 / 5-item setting and from-scratch PPO on the warehouse were not run. The dashboard was checked page by page in headless Chrome (Playwright) but has no automated browser test in CI.
 
 ## Reproducing the headline result
 
@@ -216,7 +216,7 @@ MIT, see [LICENSE](LICENSE).
 | 4 | Warehouse training and reward engineering | Done (target met) |
 | 5 | Experiments, tuning, statistics | Done |
 | 6 | Streamlit dashboard | Done |
-| 7 | Polish | Done (models, model cards, README; dashboard not click-tested in a real browser) |
+| 7 | Polish | Done (models, model cards, README; dashboard checked in a real browser with Playwright) |
 
 ## Development
 

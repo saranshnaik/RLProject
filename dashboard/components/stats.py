@@ -65,8 +65,17 @@ def smooth(values, window: int) -> np.ndarray:
     return pd.Series(values).rolling(window, min_periods=1).mean().to_numpy()
 
 
+def metric_bounds(metric: str) -> tuple[float, float] | None:
+    """Valid range of a logged metric, or None when it is unbounded (returns, losses)."""
+    return (0.0, 1.0) if metric.endswith(("success_rate", "efficiency")) else None
+
+
 def mean_ci_curve(
-    curves: list[pd.DataFrame], n_points: int = 200, confidence: float = 0.95, window: int = 1
+    curves: list[pd.DataFrame],
+    n_points: int = 200,
+    confidence: float = 0.95,
+    window: int = 1,
+    bounds: tuple[float, float] | None = None,
 ) -> pd.DataFrame:
     """Combine per-seed curves (columns ``step``, ``value``) into a mean and a t-interval.
 
@@ -74,6 +83,8 @@ def mean_ci_curve(
     only up to its own last step, so an unfinished run does not distort the average after it ends
     (``n_seeds`` records how many seeds each point averages). With one seed the band collapses to
     the mean. Returns columns step, mean, low, high, n_seeds (empty if there is nothing to plot).
+    ``bounds`` clips the band to a metric's valid range (e.g. (0, 1) for a success rate, which a
+    t-interval would otherwise exceed).
     """
     usable = [c.sort_values("step") for c in curves if c is not None and len(c) > 0]
     if not usable:
@@ -100,4 +111,7 @@ def mean_ci_curve(
     out = pd.DataFrame(
         {"step": grid, "mean": mean, "low": mean - half, "high": mean + half, "n_seeds": count}
     )
+    if bounds is not None:
+        out["low"] = out["low"].clip(lower=bounds[0], upper=bounds[1])
+        out["high"] = out["high"].clip(lower=bounds[0], upper=bounds[1])
     return out[keep].reset_index(drop=True)

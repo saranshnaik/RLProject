@@ -1,6 +1,6 @@
 """Dashboard home: headline result, summary table and the best GIFs.
 
-Run with:  uv run streamlit run dashboard/app.py
+Run with:  uv run streamlit run dashboard/Overview.py
 Works from a fresh clone: it reads only the committed results/, models/ and docs/figures/.
 """
 

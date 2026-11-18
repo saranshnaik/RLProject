@@ -10,7 +10,7 @@ from streamlit.testing.v1 import AppTest  # noqa: E402
 
 DASHBOARD = Path(__file__).resolve().parents[1] / "dashboard"
 PAGES = [
-    "app.py",
+    "Overview.py",
     "pages/1_Watch_Agent.py",
     "pages/2_Learning_Curves.py",
     "pages/3_Compare_Agents.py",

@@ -249,3 +249,16 @@ def test_curated_model_plays_a_held_out_episode_on_cpu():
     ok, _ = sandbox.model_fits(sandbox.SandboxParams(), policy)
     big_ok, why = sandbox.model_fits(sandbox.SandboxParams(height=16, width=16), policy)
     assert ok and not big_ok and "12x12" in why
+
+
+def test_mean_ci_curve_bounds_clip_the_band_to_valid_range():
+    a, b = _curve([0, 10], [0.9, 1.0]), _curve([0, 10], [1.0, 1.0])
+    raw = stats.mean_ci_curve([a, b, _curve([0, 10], [0.2, 0.4])], n_points=5)
+    assert raw["high"].max() > 1.0  # a t-interval on a rate can leave [0, 1]
+    clipped = stats.mean_ci_curve(
+        [a, b, _curve([0, 10], [0.2, 0.4])],
+        n_points=5,
+        bounds=stats.metric_bounds("eval/success_rate"),
+    )
+    assert clipped["high"].max() <= 1.0 and clipped["low"].min() >= 0.0
+    assert stats.metric_bounds("rollout/ep_rew_mean") is None
